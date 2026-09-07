@@ -44,7 +44,7 @@
 
 ## Практические работы
 
-- **№1 — UDP-протокол и архитектура.** Консольные UDP-сервер и клиент на C++ (Berkeley Sockets/Winsock, адрес резолвится через `getaddrinfo()`), ООП-структура (`UdpSocket`, `GameServer`, `GameClient`), команды `MOVEMENT`/`SHOOT`/`AUTH`, заголовок с sequence-номером и CRC32-checksum, логирование на сервере. Код: [`net/`](net/), [`server/`](server/), [`client/`](client/). Спецификация протокола и распределение обязанностей клиент/сервер: [docs/pr1-udp-protocol.md](docs/pr1-udp-protocol.md).
+- **№1 — UDP-протокол и архитектура.** Консольные UDP-сервер и клиент на C++ (Berkeley Sockets/Winsock, адрес резолвится через `getaddrinfo()`), ООП-структура (`UdpSocket`, `GameServer`, `GameClient`), команды `MOVEMENT`/`SHOOT`/`AUTH`, заголовок с sequence-номером и CRC32-checksum, логирование на сервере. Код: [`net/`](net/), [`server/`](server/), [`client/`](client/). Спецификация протокола: [docs/pr1-udp-protocol.md](docs/pr1-udp-protocol.md). Отчёт о выполнении по шагам: [docs/pr1.md](docs/pr1.md).
 
 ## Структура репозитория
 
