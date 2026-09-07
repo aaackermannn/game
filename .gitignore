@@ -5,3 +5,17 @@ build/
 .env
 .vscode/
 .idea/
+
+# C++ build artifacts (server/client консольные приложения из практической №1)
+*.obj
+*.o
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+!*.vcxproj
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
