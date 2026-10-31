@@ -1,0 +1,1 @@
+SUMMARY {"experiment_id":"combined","run_id":"run_20261031T183959_combined","sent":50,"received":47,"timeouts":3,"late":0,"duplicates":0,"unknown":0,"invalid":0,"min_ms":61.858000,"max_ms":157.083000,"mean_ms":113.362809,"median_ms":109.044000,"srtt_ms":119.835298,"jitter_ms":34.239326,"loss_percent":6.000000}

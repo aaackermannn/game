@@ -1,0 +1,1 @@
+SUMMARY {"experiment_id":"delay_100","run_id":"run_20261031T183839_delay_100","sent":50,"received":50,"timeouts":0,"late":0,"duplicates":0,"unknown":0,"invalid":0,"min_ms":106.776000,"max_ms":111.134000,"mean_ms":109.004620,"median_ms":109.077000,"srtt_ms":109.452246,"jitter_ms":1.104347,"loss_percent":0.000000}

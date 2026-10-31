@@ -1,0 +1,98 @@
+READY 127.0.0.1:27015 profile=loss_5 seed=20261031
+PING seq=0 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=0 peer=127.0.0.1:53257
+PING seq=1 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=1 peer=127.0.0.1:53257
+PING seq=2 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=2 peer=127.0.0.1:53257
+PING seq=3 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=3 peer=127.0.0.1:53257
+PING seq=4 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=4 peer=127.0.0.1:53257
+PING seq=5 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=5 peer=127.0.0.1:53257
+PING seq=6 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=6 peer=127.0.0.1:53257
+PING seq=7 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=7 peer=127.0.0.1:53257
+PING seq=8 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=8 peer=127.0.0.1:53257
+PING seq=9 peer=127.0.0.1:53257 drop=1 delay_ms=0
+PING seq=10 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=10 peer=127.0.0.1:53257
+PING seq=11 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=11 peer=127.0.0.1:53257
+PING seq=12 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=12 peer=127.0.0.1:53257
+PING seq=13 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=13 peer=127.0.0.1:53257
+PING seq=14 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=14 peer=127.0.0.1:53257
+PING seq=15 peer=127.0.0.1:53257 drop=1 delay_ms=0
+PING seq=16 peer=127.0.0.1:53257 drop=1 delay_ms=0
+PING seq=17 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=17 peer=127.0.0.1:53257
+PING seq=18 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=18 peer=127.0.0.1:53257
+PING seq=19 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=19 peer=127.0.0.1:53257
+PING seq=20 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=20 peer=127.0.0.1:53257
+PING seq=21 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=21 peer=127.0.0.1:53257
+PING seq=22 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=22 peer=127.0.0.1:53257
+PING seq=23 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=23 peer=127.0.0.1:53257
+PING seq=24 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=24 peer=127.0.0.1:53257
+PING seq=25 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=25 peer=127.0.0.1:53257
+PING seq=26 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=26 peer=127.0.0.1:53257
+PING seq=27 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=27 peer=127.0.0.1:53257
+PING seq=28 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=28 peer=127.0.0.1:53257
+PING seq=29 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=29 peer=127.0.0.1:53257
+PING seq=30 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=30 peer=127.0.0.1:53257
+PING seq=31 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=31 peer=127.0.0.1:53257
+PING seq=32 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=32 peer=127.0.0.1:53257
+PING seq=33 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=33 peer=127.0.0.1:53257
+PING seq=34 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=34 peer=127.0.0.1:53257
+PING seq=35 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=35 peer=127.0.0.1:53257
+PING seq=36 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=36 peer=127.0.0.1:53257
+PING seq=37 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=37 peer=127.0.0.1:53257
+PING seq=38 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=38 peer=127.0.0.1:53257
+PING seq=39 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=39 peer=127.0.0.1:53257
+PING seq=40 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=40 peer=127.0.0.1:53257
+PING seq=41 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=41 peer=127.0.0.1:53257
+PING seq=42 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=42 peer=127.0.0.1:53257
+PING seq=43 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=43 peer=127.0.0.1:53257
+PING seq=44 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=44 peer=127.0.0.1:53257
+PING seq=45 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=45 peer=127.0.0.1:53257
+PING seq=46 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=46 peer=127.0.0.1:53257
+PING seq=47 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=47 peer=127.0.0.1:53257
+PING seq=48 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=48 peer=127.0.0.1:53257
+PING seq=49 peer=127.0.0.1:53257 drop=0 delay_ms=0
+PONG seq=49 peer=127.0.0.1:53257
