@@ -7,7 +7,7 @@
 - [Отчёт](Latency_Report.md), [конфигурация](Experiment_Config.md), [CSV](latency_samples.csv).
 - Проверки: Debug, Release, отдельная чистая сборка; CTest — 3/3.
 - Эксперимент: 6 серий по 50 PING; 294 received, 6 timeout.
-- PR: подготавливается после загрузки всех файлов.
+- [PR №1](https://gitverse.ru/aaackermannn/course-multiplayer/pulls/1): `feature/latency-measurement` → `master`.
 
 ## Задачи
 
