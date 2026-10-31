@@ -65,6 +65,16 @@ class UdpTests(unittest.TestCase):
         self.assertEqual(data['loss_percent'], 100)
         self.assertIsNone(data['mean_ms'])
 
+    def test_duplicate_run_id_preserves_existing_csv(self):
+        first = self.client(available_port(), count=1, timeout=20, grace=0)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        path = self.root/'samples.csv'
+        original = path.read_bytes()
+        second = self.client(available_port(), count=1, timeout=20, grace=0)
+        self.assertNotEqual(second.returncode, 0)
+        self.assertIn('run-id already present', second.stderr)
+        self.assertEqual(path.read_bytes(), original)
+
     def test_faults_late_duplicates_and_constant_send_interval(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('127.0.0.1', 0)); sock.settimeout(.01)
@@ -86,6 +96,7 @@ class UdpTests(unittest.TestCase):
                     times.append(time.monotonic())
                     if seq == 0:
                         sock.sendto(pong(seq, echo, 2), address)
+                        sock.sendto(struct.pack('!BHHHQQQ', 2, seq, 24, 1, echo, 20, 10), address)
                         sock.sendto(pong(seq, echo+1), address)
                         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as foreign:
                             foreign.sendto(pong(seq, echo), address)
@@ -108,7 +119,7 @@ class UdpTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         data = summary(result)
         self.assertEqual((data['sent'], data['received'], data['timeouts'], data['late']), (4, 2, 2, 1))
-        self.assertEqual((data['duplicates'], data['unknown'], data['invalid']), (2, 1, 3))
+        self.assertEqual((data['duplicates'], data['unknown'], data['invalid']), (2, 1, 4))
         self.assertEqual(data['loss_percent'], 50)
         self.assertEqual(len(times), 4)
         for a, b in zip(times, times[1:]):
