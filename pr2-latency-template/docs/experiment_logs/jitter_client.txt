@@ -1,0 +1,1 @@
+SUMMARY {"experiment_id":"jitter","run_id":"run_20261031T183906_jitter","sent":50,"received":50,"timeouts":0,"late":0,"duplicates":0,"unknown":0,"invalid":0,"min_ms":61.867000,"max_ms":158.032000,"mean_ms":112.763060,"median_ms":108.910500,"srtt_ms":120.034230,"jitter_ms":36.538347,"loss_percent":0.000000}
