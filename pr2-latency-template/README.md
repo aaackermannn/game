@@ -27,7 +27,7 @@ cmake --build build/pr2 --config Release --parallel 4
 ctest --test-dir build/pr2 -C Release --output-on-failure
 ```
 
-Для офлайн-сборки доступный локальный Catch2 можно передать через `-DFETCHCONTENT_SOURCE_DIR_CATCH2=<путь>`. Если Python не найден CMake, указать `-DPython3_EXECUTABLE=<путь к python>`; без Python доступны только C++ unit_tests, поэтому для полной проверки задания Python обязателен.
+Для офлайн-сборки локальный Catch2 можно передать через `-DFETCHCONTENT_SOURCE_DIR_CATCH2=<путь>`. Python обязателен для сборки с тестами; путь задаётся через `-DPython3_EXECUTABLE=<путь к python>`. Явная сборка без тестов: `-DBUILD_TESTING=OFF`.
 
 ## Ручной запуск
 
@@ -62,6 +62,17 @@ python scripts/analyze_latency.py --docs docs/repeat_1
 python scripts/analyze_latency.py --docs docs
 ```
 
+Запуск с официальным Clumsy 0.3 выполняется из терминала администратора:
+
+```powershell
+python scripts/run_experiments.py --bin-dir build/Release --output-dir docs/clumsy_run --count 100 --interval-ms 200 --clumsy C:/tools/clumsy/clumsy.exe
+python scripts/analyze_latency.py --docs docs/clumsy_run
+```
+
+Clumsy фильтрует только исходящие UDP-пакеты localhost с портом отправителя 27015. Задержки 50/100 мс и потери задаются Clumsy; переменный компонент jitter остаётся в сервере и записывается в manifest. Перед сериями с задержкой выполняется отдельный калибровочный PING. Seed сервера фиксирован; seed Clumsy недоступен.
+
+Этот дополнительный режим пока не проверен запуском Clumsy. Опубликованные измерения выполнены встроенным серверным эмулятором; согласование его использования отмечено в конфигурации эксперимента.
+
 PowerShell-обёртка из корня Loop: `./pr2-latency-template/scripts/run_experiments.ps1 -BinDir ./build/pr2/Release -OutputDir ./pr2-latency-template/docs/repeat_1`. Параметр `-Python` позволяет выбрать интерпретатор.
 
 При ограничении записи в домашний каталог для matplotlib задайте `MPLCONFIGDIR` на доступный каталог кэша. Числа и графики заново выводятся из CSV и сверяются с сохранёнными итогами клиента. Между маркерами metrics в отчёте таблица обновляется автоматически; текст интерпретации для нового эксперимента следует пересмотреть.
@@ -76,5 +87,6 @@ PowerShell-обёртка из корня Loop: `./pr2-latency-template/scripts/
 - [Спецификация](docs/Protocol_Specification.md), [конфигурация](docs/Experiment_Config.md), [отчёт с графиками](docs/Latency_Report.md).
 - [CSV](docs/latency_samples.csv), [manifest](docs/experiment_manifest.json), [метрики](docs/metrics.json), [логи](docs/experiment_logs/).
 - [Оформление сдачи, issues, PR и ревью](docs/Submission_Checklist.md).
+- [Саморевью кода](docs/Code_Review.md).
 
 Формат ПР №2 несовместим с 12-байтовым форматом ПР №1 Loop. Приложения ПР №1 сохранены отдельно в родительском проекте. Здесь MOVEMENT/SHOOT распознаются и логируются по контракту нового заголовка; игровая симуляция не переносилась в подсистему измерений.
