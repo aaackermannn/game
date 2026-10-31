@@ -1,0 +1,1 @@
+SUMMARY {"experiment_id":"loss_5","run_id":"run_20261031T234429_loss_5","sent":100,"received":92,"timeouts":8,"late":0,"duplicates":0,"unknown":0,"invalid":0,"min_ms":0.285000,"max_ms":3.473000,"mean_ms":0.488717,"median_ms":0.404000,"srtt_ms":0.439067,"jitter_ms":0.215780,"loss_percent":8.000000}
