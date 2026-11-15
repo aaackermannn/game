@@ -70,6 +70,8 @@ Dedicated Server соответствует существующему разд�
 
 ## Практические работы
 
+- **№3 — надёжная доставка критичных команд.** UDP-стенд из ПР №2 подтверждает `SHOOT` и повторяет его при адаптивном тайм-ауте. [Отчёт и эксперимент](pr2-latency-template/docs/Reliability_Protocol.md) · [Материалы для защиты](Защита_ПР3/Защита_практической_работы_3.docx).
+
 - **№1 — UDP-протокол и архитектура.** Консольные UDP-сервер и клиент на C++ (Berkeley Sockets/Winsock, адрес резолвится через `getaddrinfo()`), ООП-структура (`UdpSocket`, `GameServer`, `GameClient`), команды `MOVEMENT`/`SHOOT`/`AUTH`, заголовок с sequence-номером и CRC32-checksum, логирование на сервере. Код: [`net/`](net/), [`server/`](server/), [`client/`](client/). Спецификация протокола: [docs/pr1-udp-protocol.md](docs/pr1-udp-protocol.md). Отчёт о выполнении по шагам: [docs/pr1.md](docs/pr1.md).
 - **№2 — телеметрия UDP.** Отдельный проект [`pr2-latency-template/`](pr2-latency-template/README.md): PING/PONG, модули protocol/telemetry/transport, RTT/SRTT/jitter/loss, проверка ошибочных и поздних ответов, Catch2 и UDP-интеграция. Проведены 6 серий по 50 PING; исходные CSV, параметры и графики — в [отчёте](pr2-latency-template/docs/Latency_Report.md). Формат ПР №2 отделён от ПР №1. [Статус форка, PR и ревью](pr2-latency-template/docs/Submission_Checklist.md).
 

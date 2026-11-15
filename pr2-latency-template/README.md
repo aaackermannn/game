@@ -1,6 +1,8 @@
-# Практическая работа №2: телеметрия UDP
+# Практические работы №2 и №3 по UDP
 
-Реализован учебный шаблон [univ-mirea-iit/course-multiplayer](https://gitverse.ru/univ-mirea-iit/course-multiplayer/content/master/pr2-latency-template), исходный commit `b01e0606978451047580a2938c998e6a0fb58b9c`. C++17, отдельный dedicated-сервер, PING/PONG с явной сериализацией, проверкой датаграмм, RTT/SRTT/jitter/loss и ограниченным реестром измерений. Повторных передач нет.
+ПР №2 измеряет RTT, SRTT, джиттер и потери через PING/PONG. ПР №3 добавляет надёжную доставку `SHOOT` с подтверждением ACK, тайм-аутом RTO и фильтрацией дублей на выделенном сервере. Оба режима работают с протоколом версии 2.
+
+Учебный шаблон [univ-mirea-iit/course-multiplayer](https://gitverse.ru/univ-mirea-iit/course-multiplayer/content/master/pr2-latency-template), исходный commit `b01e0606978451047580a2938c998e6a0fb58b9c`. Используется C++17.
 
 Результаты шести серий от 31 октября 2026 года: 600 PING, 584 успешных ответа, 16 тайм-аутов. Эксперимент выполнен через loopback с Clumsy 0.3; переменная задержка jitter/combined задаётся очередью сервера и явно описана в отчёте.
 
@@ -43,7 +45,15 @@ ctest --test-dir build/pr2 -C Release --output-on-failure
 .\build\Release\client.exe --host 127.0.0.1 --port 27015 --experiment baseline --count 50 --interval-ms 500 --timeout-ms 1000 --grace-ms 1200 --csv docs/manual_samples.csv --run-id manual_baseline_1
 ```
 
-Сервер завершается по Ctrl+C либо `--duration-ms`. Для подключения с других машин явно указать подходящий `--bind` и доступный адрес клиента `--host`; в эксперименте сервер слушал только loopback. Клиент заканчивает серию самостоятельно. Ошибки CLI/файла/отправки возвращают ненулевой код. Успешный сбор результатов, включая 100% тайм-аутов, возвращает 0 и печатает JSON после префикса `SUMMARY `.
+Для режима ПР №3 можно запустить тот же сервер с `--profile loss_20` и отправить серию выстрелов:
+
+```powershell
+.\build\Release\client.exe --mode reliability --port 27015 --count 50 --interval-ms 100 --csv build/manual_reliability.csv --run-id shoot_demo
+```
+
+В этом режиме `--max-attempts` по умолчанию равно 5, а `--ping-interval-ms` равно 500. События `sent`, `retransmit`, `acknowledged` и `failed` записываются в отдельный CSV. [Описание RTO, результаты и команда для шести серий](docs/Reliability_Protocol.md).
+
+Сервер завершается по Ctrl+C либо `--duration-ms`. Для подключения с других машин явно укажите подходящий `--bind` и доступный адрес клиента `--host`. Клиент заканчивает серию самостоятельно. Ошибки CLI, файла и отправки возвращают ненулевой код. В режиме ПР №2 успешный сбор печатает JSON после префикса `SUMMARY `. В режиме ПР №3 итоговый RTO сохраняется в событии `final`.
 
 CLI принимает только пары `--параметр значение`; все опции показаны через `--help`. Ограничения: port 1..65535, count 1..60000, interval-ms 200..1000, timeout-ms 1..60000, grace-ms 0..60000. Идентификаторы состоят из 1..80 ASCII-букв, цифр, `_` и `-`. Для отчётного эксперимента count >=50. Приём не блокирует расписание отправок. Существующий CSV дополняется; повторный run-id и несовместимый заголовок отклоняются.
 
@@ -81,6 +91,7 @@ PowerShell-обёртка из корня Loop: `./pr2-latency-template/scripts/
 
 - `include/protocol`, `src/protocol.cpp`: формат и валидация без сокетов/часов.
 - `include/telemetry`, `src/telemetry.cpp`: состояния и статистика с передаваемым временем, без сети/файлов.
+- `include/reliability`, `src/reliability`: повторные передачи, адаптивный RTO и окно дедупликации без сокетов.
 - `include/transport`, `src/transport`: UDP и RAII, без протокола/метрик.
 - `src/client_main.cpp`, `src/server_main.cpp`, `include/app`: CLI, монотонные часы, CSV, серверная очередь/эмулятор.
 - `tests`: Catch2, независимый анализ CSV и реальные UDP-сценарии с искусственно заданными ошибками.
