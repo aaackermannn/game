@@ -7,6 +7,12 @@
 #include <unordered_map>
 #include <vector>
 
+// Один коэффициент сглаживания для телеметрии и оценки RTO.
+inline double SmoothSrtt(double previousMs, double sampleMs) {
+    return 0.875 * previousMs + 0.125 * sampleMs;
+}
+
+// Статус описывает отдельное событие CSV, а состояние хранит текущий результат запроса.
 enum class ResponseStatus { Received, Timeout, Late, Duplicate, Unknown, Invalid };
 const char* StatusName(ResponseStatus status);
 enum class FlightState { Pending, Received, TimedOut, LateReceived };
@@ -32,23 +38,37 @@ struct Statistics {
 class Telemetry {
 public:
     explicit Telemetry(std::uint64_t timeoutUs = 1'000'000, std::size_t capacity = 1024);
-    bool OnPingSent(std::uint16_t sequence, std::uint64_t nowUs, const std::string& experimentId = "test", std::size_t sample = 0);
-    // Emits timeout + late_response atomically if the expiration scan has not run yet.
-    std::vector<ResponseEvent> ProcessPong(std::uint16_t sequence, std::uint64_t echoedUs, std::uint64_t nowUs);
+    bool OnPingSent(std::uint16_t sequence, std::uint64_t nowUs, const std::string& experimentId = "test",
+                    std::size_t sample = 0);
+    // Если просроченный ответ пришёл до Expire, возвращаем timeout, затем late_response за один вызов.
+    std::vector<ResponseEvent> ProcessPong(std::uint16_t sequence, std::uint64_t echoedUs,
+                                           std::uint64_t nowUs);
     ResponseStatus OnPong(std::uint16_t sequence, std::uint64_t nowUs);
     std::vector<ResponseEvent> Expire(std::uint64_t nowUs);
-    std::size_t ExpireOverdue(std::uint64_t nowUs) { return Expire(nowUs).size(); }
+    std::size_t ExpireOverdue(std::uint64_t nowUs) {
+        return Expire(nowUs).size();
+    }
     Statistics Summary() const;
-    double SrttMs() const { return srttMs_; }
+    double SrttMs() const {
+        return srttMs_;
+    }
     double MeanJitterMs() const;
-    std::size_t SampleCount() const { return rtts_.size(); }
-    std::size_t PendingCount() const { return pending_; }
-    std::size_t RecordCount() const { return inFlight_.size(); }
+    std::size_t SampleCount() const {
+        return rtts_.size();
+    }
+    std::size_t PendingCount() const {
+        return pending_;
+    }
+    std::size_t RecordCount() const {
+        return inFlight_.size();
+    }
+
 private:
-    ResponseEvent Event(ResponseStatus status, std::uint16_t seq, const FlightRecord* record, std::uint64_t nowUs,
-                        std::optional<double> rtt = std::nullopt) const;
+    ResponseEvent Event(ResponseStatus status, std::uint16_t seq, const FlightRecord* record,
+                        std::uint64_t nowUs, std::optional<double> rtt = std::nullopt) const;
     std::uint64_t timeoutUs_;
     std::size_t capacity_, pending_ = 0;
+    // По номеру ищем запрос, а порядок истории позволяет вытеснять старые завершённые записи.
     std::unordered_map<std::uint16_t, FlightRecord> inFlight_;
     std::deque<std::pair<std::uint16_t, std::uint64_t>> history_;
     Statistics counters_;

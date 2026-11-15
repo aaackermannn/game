@@ -6,8 +6,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(catch2)
 
-add_executable(unit_tests test_protocol.cpp test_telemetry.cpp test_emulator.cpp)
-target_link_libraries(unit_tests PRIVATE Catch2::Catch2WithMain protocol telemetry)
+add_executable(unit_tests test_protocol.cpp test_telemetry.cpp test_emulator.cpp test_reliable_channel.cpp)
+target_link_libraries(unit_tests PRIVATE Catch2::Catch2WithMain protocol telemetry reliability)
 add_test(NAME unit_tests COMMAND unit_tests)
 set_tests_properties(unit_tests PROPERTIES TIMEOUT 30)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
