@@ -98,7 +98,8 @@ int main(int argc, char** argv) {
     try {
         app::Options opts(argc, argv,
                           {"--host", "--port", "--experiment", "--count", "--interval-ms", "--timeout-ms",
-                           "--grace-ms", "--csv", "--run-id", "--mode", "--max-attempts", "--ping-interval-ms"});
+                           "--grace-ms", "--csv", "--run-id", "--mode", "--max-attempts",
+                           "--ping-interval-ms"});
         const auto mode = opts.Text("--mode", "latency");
         if (mode == "reliability")
             return app::RunReliability(opts);

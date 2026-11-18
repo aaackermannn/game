@@ -29,7 +29,10 @@ struct Endpoint {
     bool operator==(const Endpoint& other) const;
     std::string ToString() const;
 };
-struct Datagram { std::vector<std::uint8_t> bytes; Endpoint from; };
+struct Datagram {
+    std::vector<std::uint8_t> bytes;
+    Endpoint from;
+};
 class NetworkRuntime {
 public:
     NetworkRuntime();
@@ -46,7 +49,10 @@ public:
     void Send(const std::vector<std::uint8_t>& bytes) const;
     void SendTo(const std::vector<std::uint8_t>& bytes, const Endpoint& destination) const;
     std::optional<Datagram> Receive(int waitMs) const;
-    const Endpoint& Peer() const { return peer_; }
+    const Endpoint& Peer() const {
+        return peer_;
+    }
+
 private:
     NetworkRuntime runtime_;
     SocketHandle socket_ = InvalidSocket;

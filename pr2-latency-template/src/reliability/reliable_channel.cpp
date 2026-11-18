@@ -31,7 +31,8 @@ std::optional<Acknowledgement> ReliableChannel::OnAckReceived(std::uint16_t sequ
     return ack;
 }
 
-DeliveryBatch ReliableChannel::CollectForRetransmission(std::uint64_t nowUs, std::uint64_t adaptiveTimeoutUs) {
+DeliveryBatch ReliableChannel::CollectForRetransmission(std::uint64_t nowUs,
+                                                        std::uint64_t adaptiveTimeoutUs) {
     DeliveryBatch due;
     if (adaptiveTimeoutUs == 0) {
         throw std::invalid_argument("adaptiveTimeoutUs must be positive");

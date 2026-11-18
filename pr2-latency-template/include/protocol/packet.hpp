@@ -47,8 +47,8 @@ std::optional<PingPayload> ParsePing(const std::uint8_t* data, std::size_t size,
                                      ParseError* error = nullptr);
 std::optional<PongPayload> ParsePong(const std::uint8_t* data, std::size_t size, PacketHeader& header,
                                      ParseError* error = nullptr);
-std::optional<MovementPayload> ParseMovement(const std::uint8_t* data, std::size_t size,
-                                             PacketHeader& header, ParseError* error = nullptr);
+std::optional<MovementPayload> ParseMovement(const std::uint8_t* data, std::size_t size, PacketHeader& header,
+                                             ParseError* error = nullptr);
 std::optional<ShootPayload> ParseShoot(const std::uint8_t* data, std::size_t size, PacketHeader& header,
                                        ParseError* error = nullptr);
 std::optional<AckPayload> ParseAck(const std::uint8_t* data, std::size_t size, PacketHeader& header,

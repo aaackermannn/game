@@ -230,7 +230,9 @@ class UdpTests(unittest.TestCase):
                         sock.sendto(packet, ("127.0.0.1", port))
                     sock.sendto(struct.pack("!BHHHBQ", 1, 42, 8, 2, 0, 1234), ("127.0.0.1", port))
                     packet, _ = sock.recvfrom(65536)
-                    kind, seq, length, version, flags, echo, received, sent = struct.unpack("!BHHHBQQQ", packet)
+                    kind, seq, length, version, flags, echo, received, sent = struct.unpack(
+                        "!BHHHBQQQ", packet
+                    )
                     self.assertEqual((kind, seq, length, version, flags, echo), (2, 42, 24, 2, 0, 1234))
                     self.assertGreaterEqual(sent, received)
             finally:
@@ -257,9 +259,10 @@ class UdpTests(unittest.TestCase):
                     time.sleep(0.01)
                 shoot = struct.pack("!BHHHBffI", 4, 17, 12, 2, 1, 1.0, 0.0, 1)
                 ack = struct.pack("!BHHHBH", 5, 17, 2, 2, 0, 17)
-                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as a, socket.socket(
-                    socket.AF_INET, socket.SOCK_DGRAM
-                ) as b:
+                with (
+                    socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as a,
+                    socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as b,
+                ):
                     # Два клиента могут использовать одинаковый sequence. Повтор A получает ACK снова.
                     for client in (a, a, b):
                         client.settimeout(1)

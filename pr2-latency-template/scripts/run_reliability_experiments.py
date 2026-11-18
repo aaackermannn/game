@@ -35,16 +35,47 @@ def run_series(server, client, directory, profile, args):
     server_log = directory / (profile + "_server.txt")
     run_id = datetime.now(MOSCOW).strftime("pr3_%Y%m%dT%H%M%S_%f_") + profile
     max_runtime_ms = args.count * args.interval_ms + args.max_attempts * 3000 + 5000
-    server_cmd = [str(server), "--bind", "127.0.0.1", "--port", str(args.port),
-                  "--profile", profile, "--seed", str(args.seed), "--duration-ms", str(max_runtime_ms + 5000)]
-    client_cmd = [str(client), "--port", str(args.port), "--mode", "reliability", "--experiment", profile,
-                  "--run-id", run_id, "--count", str(args.count), "--interval-ms", str(args.interval_ms),
-                  "--ping-interval-ms", str(args.ping_interval_ms), "--max-attempts", str(args.max_attempts),
-                  "--csv", "reliability_samples.csv"]
+    server_cmd = [
+        str(server),
+        "--bind",
+        "127.0.0.1",
+        "--port",
+        str(args.port),
+        "--profile",
+        profile,
+        "--seed",
+        str(args.seed),
+        "--duration-ms",
+        str(max_runtime_ms + 5000),
+    ]
+    client_cmd = [
+        str(client),
+        "--port",
+        str(args.port),
+        "--mode",
+        "reliability",
+        "--experiment",
+        profile,
+        "--run-id",
+        run_id,
+        "--count",
+        str(args.count),
+        "--interval-ms",
+        str(args.interval_ms),
+        "--ping-interval-ms",
+        str(args.ping_interval_ms),
+        "--max-attempts",
+        str(args.max_attempts),
+        "--csv",
+        "reliability_samples.csv",
+    ]
     print("START", profile, flush=True)
-    with server_log.open("wb") as log, subprocess.Popen(
-        server_cmd, cwd=directory, stdout=log, stderr=subprocess.STDOUT, creationflags=FLAGS
-    ) as process:
+    with (
+        server_log.open("wb") as log,
+        subprocess.Popen(
+            server_cmd, cwd=directory, stdout=log, stderr=subprocess.STDOUT, creationflags=FLAGS
+        ) as process,
+    ):
         try:
             # Сигнал READY приходит после bind. До него запуск клиента исказил бы первую пробу.
             deadline = time.monotonic() + 5
@@ -53,8 +84,14 @@ def run_series(server, client, directory, profile, args):
                     raise RuntimeError(f"{profile}: server startup failed\n{server_log.read_bytes()!r}")
                 time.sleep(0.01)
             completed = subprocess.run(
-                client_cmd, cwd=directory, capture_output=True, text=True, encoding="utf-8",
-                errors="replace", timeout=max_runtime_ms / 1000, creationflags=FLAGS,
+                client_cmd,
+                cwd=directory,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=max_runtime_ms / 1000,
+                creationflags=FLAGS,
             )
             if completed.returncode:
                 raise RuntimeError(f"{profile}: client failed\n{completed.stdout}{completed.stderr}")
@@ -155,12 +192,19 @@ def analyze_series(profile, rows, count, max_attempts, server_log):
     first = sum(attempts[seq] == 1 for seq in acknowledged)
     failed = count - len(acknowledged)
     return {
-        "profile": profile, "sent": count, "first": first, "failed": failed,
-        "retransmit": retransmit_count, "mean_attempts": statistics.mean(attempts.values()),
-        "mean_rto_ms": statistics.mean(terminal_rtos), "end_rto_ms": timeline[-1][1],
+        "profile": profile,
+        "sent": count,
+        "first": first,
+        "failed": failed,
+        "retransmit": retransmit_count,
+        "mean_attempts": statistics.mean(attempts.values()),
+        "mean_rto_ms": statistics.mean(terminal_rtos),
+        "end_rto_ms": timeline[-1][1],
         "mean_ack_ms": statistics.mean(ack_times) if ack_times else None,
-        "applied": len(applied), "duplicates": duplicates,
-        "ack_decisions": len(decisions), "ack_drops": decisions.count("1"),
+        "applied": len(applied),
+        "duplicates": duplicates,
+        "ack_decisions": len(decisions),
+        "ack_drops": decisions.count("1"),
         "timeline": timeline,
     }
 
@@ -171,12 +215,19 @@ def render(results, directory):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    plt.rcParams.update({
-        "font.family": "DejaVu Sans", "font.size": 10.5,
-        "axes.spines.top": False, "axes.spines.right": False, "axes.axisbelow": True,
-        "axes.labelcolor": "#25354d", "axes.edgecolor": "#a4afbf",
-        "xtick.color": "#25354d", "ytick.color": "#25354d",
-    })
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 10.5,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.axisbelow": True,
+            "axes.labelcolor": "#25354d",
+            "axes.edgecolor": "#a4afbf",
+            "xtick.color": "#25354d",
+            "ytick.color": "#25354d",
+        }
+    )
     blue = "#1757a6"
     # У первых четырёх серий меняются только потери. Смешанные серии исказили бы это сравнение.
     loss = [0, 5, 10, 20]
@@ -184,10 +235,17 @@ def render(results, directory):
     fig, ax = plt.subplots(figsize=(8.6, 4.3), layout="constrained")
     ax.plot(loss, means, marker="o", color=blue, linewidth=2.1)
     for percent, mean in zip(loss, means):
-        ax.annotate(f"{mean:.2f}", (percent, mean), xytext=(0, 9), textcoords="offset points",
-                    ha="center", color=blue)
-    ax.set(title="Число попыток при потере подтверждений", xlabel="Настроенная вероятность потери ACK, %",
-           ylabel="Среднее число попыток", xlim=(-1.2, 21.2), ylim=(0.97, max(means) + 0.12), xticks=loss)
+        ax.annotate(
+            f"{mean:.2f}", (percent, mean), xytext=(0, 9), textcoords="offset points", ha="center", color=blue
+        )
+    ax.set(
+        title="Число попыток при потере подтверждений",
+        xlabel="Настроенная вероятность потери ACK, %",
+        ylabel="Среднее число попыток",
+        xlim=(-1.2, 21.2),
+        ylim=(0.97, max(means) + 0.12),
+        xticks=loss,
+    )
     ax.grid(axis="y", color="#dfe5ed")
     fig.savefig(directory / CHARTS[0], dpi=180)
     plt.close(fig)
@@ -198,8 +256,12 @@ def render(results, directory):
     fig, ax = plt.subplots(figsize=(8.6, 4.3), layout="constrained")
     ax.axhline(100, color="#8291a6", linestyle="--", linewidth=1, label="Нижняя граница RTO")
     ax.step(times, rtos, where="post", color=blue, linewidth=1.7, label="Текущее RTO")
-    ax.set(title="Изменение RTO при джиттере и потере ACK 10%", xlabel="Время от начала серии, с",
-           ylabel="RTO, мс", ylim=(80, max(rtos) * 1.1))
+    ax.set(
+        title="Изменение RTO при джиттере и потере ACK 10%",
+        xlabel="Время от начала серии, с",
+        ylabel="RTO, мс",
+        ylim=(80, max(rtos) * 1.1),
+    )
     ax.grid(axis="y", color="#dfe5ed")
     ax.legend(loc="best", frameon=False)
     fig.savefig(directory / CHARTS[1], dpi=180)
@@ -207,15 +269,19 @@ def render(results, directory):
 
 
 def markdown_table(results):
-    yield ("| Серия | Отправлено | ACK с 1-й попытки | Повторы | Failed | Ср. попыток | "
-           "Ср. RTO, мс | RTO в конце, мс | Ср. время до ACK, мс |")
+    yield (
+        "| Серия | Отправлено | ACK с 1-й попытки | Повторы | Failed | Ср. попыток | "
+        "Ср. RTO, мс | RTO в конце, мс | Ср. время до ACK, мс |"
+    )
     yield "|---|---:|---:|---:|---:|---:|---:|---:|---:|"
     for m in results:
         sent = m["sent"]
         mean_ack = "—" if m["mean_ack_ms"] is None else f"{m['mean_ack_ms']:.2f}"
-        yield (f"| `{m['profile']}` | {sent} | {m['first']} ({m['first'] / sent:.1%}) | {m['retransmit']} | "
-               f"{m['failed']} ({m['failed'] / sent:.1%}) | {m['mean_attempts']:.2f} | "
-               f"{m['mean_rto_ms']:.2f} | {m['end_rto_ms']:.2f} | {mean_ack} |")
+        yield (
+            f"| `{m['profile']}` | {sent} | {m['first']} ({m['first'] / sent:.1%}) | {m['retransmit']} | "
+            f"{m['failed']} ({m['failed'] / sent:.1%}) | {m['mean_attempts']:.2f} | "
+            f"{m['mean_rto_ms']:.2f} | {m['end_rto_ms']:.2f} | {mean_ack} |"
+        )
 
 
 def main():
@@ -229,9 +295,14 @@ def main():
     parser.add_argument("--port", type=int, default=27015)
     parser.add_argument("--seed", type=int, default=20261031)
     args = parser.parse_args()
-    if not (50 <= args.count <= 60000 and 20 <= args.interval_ms <= 1000
-            and 100 <= args.ping_interval_ms <= 10000 and 1 <= args.max_attempts <= 10
-            and 1 <= args.port <= 65535 and 1 <= args.seed <= 0xFFFFFFFF):
+    if not (
+        50 <= args.count <= 60000
+        and 20 <= args.interval_ms <= 1000
+        and 100 <= args.ping_interval_ms <= 10000
+        and 1 <= args.max_attempts <= 10
+        and 1 <= args.port <= 65535
+        and 1 <= args.seed <= 0xFFFFFFFF
+    ):
         parser.error("experiment parameters outside supported ranges")
     server, client = server_and_client(args.bin_dir)
     if not server.is_file() or not client.is_file():
@@ -247,12 +318,16 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".pr3-", dir=output) as path:
         directory = Path(path)
-        server_evidence = {profile: run_series(server, client, directory, profile, args) for profile in PROFILES}
+        server_evidence = {
+            profile: run_series(server, client, directory, profile, args) for profile in PROFILES
+        }
         rows = read_series(directory / samples.name)
         if set(rows) != {(profile, run_id) for profile, (run_id, _) in server_evidence.items()}:
             raise ValueError("event CSV series and run IDs do not match the executed series")
-        results = [analyze_series(profile, rows[profile, run_id], args.count, args.max_attempts, server_log)
-                   for profile, (run_id, server_log) in server_evidence.items()]
+        results = [
+            analyze_series(profile, rows[profile, run_id], args.count, args.max_attempts, server_log)
+            for profile, (run_id, server_log) in server_evidence.items()
+        ]
         render(results, directory)
         # Публикуем измерения после завершения всех серий и проверки данных.
         (output / "graphs").mkdir(exist_ok=True)
@@ -262,8 +337,10 @@ def main():
     print("Experiment finished", datetime.now(MOSCOW).isoformat(timespec="seconds"))
     print("\n".join(markdown_table(results)))
     for m in results:
-        print(f"SERVER {m['profile']} applied={m['applied']} duplicates={m['duplicates']} "
-              f"ack_drops={m['ack_drops']}/{m['ack_decisions']}")
+        print(
+            f"SERVER {m['profile']} applied={m['applied']} duplicates={m['duplicates']} "
+            f"ack_drops={m['ack_drops']}/{m['ack_decisions']}"
+        )
 
 
 if __name__ == "__main__":

@@ -36,8 +36,12 @@ public:
     std::optional<Acknowledgement> OnAckReceived(std::uint16_t sequence, std::uint64_t nowUs);
     DeliveryBatch CollectForRetransmission(std::uint64_t nowUs, std::uint64_t adaptiveTimeoutUs);
 
-    std::size_t PendingCount() const { return pending_.size(); }
-    std::size_t FailedCount() const { return failedCount_; }
+    std::size_t PendingCount() const {
+        return pending_.size();
+    }
+    std::size_t FailedCount() const {
+        return failedCount_;
+    }
 
 private:
     std::uint32_t maxAttempts_;

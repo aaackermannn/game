@@ -29,10 +29,8 @@ TEST_CASE("PING and PONG preserve all boundary fields") {
 }
 TEST_CASE("PONG payload has independently specified bytes") {
     const auto bytes = SerializePong(0x1234, {1, 2, 3});
-    const std::vector<std::uint8_t> expected{2, 0x12, 0x34, 0, 24, 0, 2, 0,
-                                             0, 0,    0,    0, 0,  0, 0, 1,
-                                             0, 0,    0,    0, 0,  0, 0, 2,
-                                             0, 0,    0,    0, 0,  0, 0, 3};
+    const std::vector<std::uint8_t> expected{2, 0x12, 0x34, 0, 24, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                                             0, 0,    0,    0, 0,  0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3};
     CHECK(bytes == expected);
 }
 TEST_CASE("All truncations and trailing bytes are rejected without modifying output") {
@@ -76,9 +74,8 @@ TEST_CASE("Header rejects type version and every incorrect declared payload size
 }
 TEST_CASE("SHOOT and MOVEMENT preserve Loop fields and signal delivery policy") {
     const auto shotBytes = SerializeShoot(0xCAFE, {1.0f, -0.5f, 0xA1B2C3D4u});
-    const std::vector<std::uint8_t> expected{4, 0xCA, 0xFE, 0, 12, 0, 2, 1,
-                                             0x3F, 0x80, 0, 0, 0xBF, 0, 0, 0,
-                                             0xA1, 0xB2, 0xC3, 0xD4};
+    const std::vector<std::uint8_t> expected{4, 0xCA, 0xFE, 0, 12, 0, 2,    1,    0x3F, 0x80,
+                                             0, 0,    0xBF, 0, 0,  0, 0xA1, 0xB2, 0xC3, 0xD4};
     CHECK(shotBytes == expected);
     PacketHeader header{};
     const auto shot = ParseShoot(shotBytes.data(), shotBytes.size(), header);

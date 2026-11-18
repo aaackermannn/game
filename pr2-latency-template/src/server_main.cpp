@@ -83,7 +83,8 @@ int main(int argc, char** argv) {
                 continue;
             }
             if (header->type == PacketType::Shoot) {
-                const auto shoot = ParseShoot(datagram->bytes.data(), datagram->bytes.size(), *header, &error);
+                const auto shoot =
+                    ParseShoot(datagram->bytes.data(), datagram->bytes.size(), *header, &error);
                 const auto peer = datagram->from.ToString();
                 if (!shoot) {
                     std::cout << "REJECT " << ParseErrorName(error) << " peer=" << peer << std::endl;

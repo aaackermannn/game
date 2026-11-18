@@ -33,8 +33,8 @@ std::vector<std::uint8_t> Header(PacketType type, std::uint16_t seq, std::uint16
     return out;
 }
 
-std::optional<PacketHeader> ParseTypedHeader(const std::uint8_t* data, std::size_t size,
-                                             PacketType type, ParseError* error) {
+std::optional<PacketHeader> ParseTypedHeader(const std::uint8_t* data, std::size_t size, PacketType type,
+                                             ParseError* error) {
     const auto header = ParseHeader(data, size, error);
     if (header && header->type != type) {
         SetError(error, ParseError::WrongType);
@@ -220,8 +220,8 @@ std::optional<PongPayload> ParsePong(const std::uint8_t* data, std::size_t size,
     header = *parsed;
     return PongPayload{*sent, *received, *serverSent};
 }
-std::optional<MovementPayload> ParseMovement(const std::uint8_t* data, std::size_t size,
-                                             PacketHeader& header, ParseError* error) {
+std::optional<MovementPayload> ParseMovement(const std::uint8_t* data, std::size_t size, PacketHeader& header,
+                                             ParseError* error) {
     const auto parsed = ParseTypedHeader(data, size, PacketType::Movement, error);
     if (!parsed)
         return std::nullopt;

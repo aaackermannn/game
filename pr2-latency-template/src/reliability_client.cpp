@@ -16,7 +16,8 @@ constexpr auto CsvHeader = "experiment_id;run_id;event;sequence;at_ms;attempts;r
 
 class DeliveryCsv {
 public:
-    DeliveryCsv(const std::filesystem::path& path, std::string experiment, std::string run, std::uint64_t start)
+    DeliveryCsv(const std::filesystem::path& path, std::string experiment, std::string run,
+                std::uint64_t start)
         : experiment_(std::move(experiment)), run_(std::move(run)), start_(start) {
         if (!path.parent_path().empty())
             std::filesystem::create_directories(path.parent_path());

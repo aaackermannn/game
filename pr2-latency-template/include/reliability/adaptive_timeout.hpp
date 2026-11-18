@@ -7,8 +7,12 @@ public:
     // Получает RTT успешной пробы PONG или однозначного ACK.
     void OnSample(double rttMs);
 
-    double SrttMs() const { return srttMs_; }
-    double RttVarMs() const { return rttVarMs_; }
+    double SrttMs() const {
+        return srttMs_;
+    }
+    double RttVarMs() const {
+        return rttVarMs_;
+    }
     double RtoMs() const;
     std::uint64_t RtoUs() const;
 
