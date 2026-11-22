@@ -9,7 +9,7 @@
 | Движок | **Godot Engine 4.4.1.stable.official (49a5bc7b6)**, GDScript — по согласованию с преподавателем вместо Unreal Engine (также GitHub вместо GitVerse) |
 | Сетевой стек | Godot High-Level Multiplayer: `ENetMultiplayerPeer` (UDP) + `@rpc` |
 | Топология | **Listen Server**: процесс-хост одновременно сервер и игрок 1, остальные подключаются как клиенты (2–8 игроков) |
-| Коммит для демонстрации | `COMMIT_HASH` (ветка `feature/prediction`) |
+| Коммит для демонстрации | `7148a16` (ветка `feature/prediction`) |
 | Код | [`kart/scripts/net/`](../kart/scripts/net/) |
 | Повторение опытов | [`kart/tools/netlab/run_prediction_tests.py`](../kart/tools/netlab/run_prediction_tests.py), логи — [`docs/prediction_logs/`](prediction_logs/) |
 | Матрица тестов | [Prediction_Test_Matrix.md](Prediction_Test_Matrix.md) |
