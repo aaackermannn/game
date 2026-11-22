@@ -40,7 +40,7 @@ func _build_world() -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 80.0
 	add_child(sun)
-	_track = Track.new()
+	_track = SunsetTrack.new()  # same circuit the race uses
 	add_child(_track)
 	_track.build()
 	_turntable = Node3D.new()
@@ -73,34 +73,40 @@ func _build_ui() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(root)
 
-	var title := Ui.label("LOOP GP", 190, Game.YELLOW, null, 26)
-	title.position = Vector2(60, 20)
+	var title := Ui.label("LOOP GP", 150, Game.YELLOW, null, 22)
+	title.position = Vector2(60, 14)
 	title.rotation = deg_to_rad(-5)
 	root.add_child(title)
 	var sub := Ui.panel(Game.RED, 18.0, 14.0)
-	sub.add_child(Ui.label("CHIBI FORMULA MAYHEM", 40, Game.PAPER, null, 8))
-	sub.position = Vector2(90, 238)
+	sub.add_child(Ui.label("CHIBI FORMULA MAYHEM", 34, Game.PAPER, null, 7))
+	sub.position = Vector2(84, 190)
 	sub.rotation = deg_to_rad(-3)
 	root.add_child(sub)
 
 	var col := VBoxContainer.new()
-	col.position = Vector2(80, 340)
+	# Compact column: everything must fit above the hint line at 900 px height.
+	col.position = Vector2(80, 268)
 	col.custom_minimum_size = Vector2(430, 0)
-	col.add_theme_constant_override("separation", 16)
+	col.add_theme_constant_override("separation", 9)
 	root.add_child(col)
-	var race := Ui.button("RACE!", Game.YELLOW, 64)
+	var race := Ui.button("RACE!", Game.YELLOW, 54)
 	race.pressed.connect(func(): Game.main.start_race())
 	col.add_child(race)
 	_add_row(col, "racer", func(d): Game.player_racer = posmod(Game.player_racer + d, Game.ROSTER.size()))
-	_add_row(col, "laps", func(d): Game.laps = clampi(Game.laps + d, 1, 9))
-	_add_row(col, "rivals", func(d): Game.bot_count = clampi(Game.bot_count + d, 0, 7))
+	_add_row(col, "laps", func(d): Game.laps = posmod(Game.laps - 1 + d, 9) + 1)  # 1..9, wraps
+	_add_row(col, "rivals", func(d): Game.bot_count = posmod(Game.bot_count + d, 8))  # 0..7, wraps
 	_add_row(col, "difficulty", func(d): Game.difficulty = posmod(Game.difficulty + d, 3))
-	var lab := Ui.button("NET LAB (MULTIPLAYER)", Game.GREEN, 34)
+	_add_row(col, "gearbox", func(_d): Game.manual_gearbox = not Game.manual_gearbox)
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 14)
+	col.add_child(bottom)
+	var lab := Ui.button("NET LAB (MULTIPLAYER)", Game.GREEN, 28)
 	lab.pressed.connect(func(): Game.main.start_netlab())
-	col.add_child(lab)
-	var quit := Ui.button("QUIT", Game.PAPER, 34)
+	lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(lab)
+	var quit := Ui.button("QUIT", Game.PAPER, 28)
 	quit.pressed.connect(func(): get_tree().quit())
-	col.add_child(quit)
+	bottom.add_child(quit)
 	race.grab_focus()
 
 	var card := Ui.panel(Game.PAPER, -16.0, 16.0, true)
@@ -118,7 +124,7 @@ func _build_ui() -> void:
 
 
 func _add_row(col: VBoxContainer, key: String, change: Callable) -> void:
-	var b := Ui.button("", Game.CYAN, 34)
+	var b := Ui.button("", Game.CYAN, 28)
 	b.pressed.connect(func():
 		change.call(1)
 		_refresh())
@@ -141,6 +147,7 @@ func _refresh() -> void:
 	_rows["laps"].text = "<  LAPS: %d  >" % Game.laps
 	_rows["rivals"].text = "<  RIVALS: %d  >" % Game.bot_count
 	_rows["difficulty"].text = "<  %s  >" % Game.difficulty_name().to_upper()
+	_rows["gearbox"].text = "<  GEARBOX: %s  >" % ("MANUAL" if Game.manual_gearbox else "AUTO")
 	_racer_name.text = racer["name"].to_upper()
 	if _kart_model:
 		_kart_model.queue_free()

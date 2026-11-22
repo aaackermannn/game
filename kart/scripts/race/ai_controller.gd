@@ -12,8 +12,8 @@ const EDGE_PUSH_KEEP := 1.2
 const LANE_REF_HALF := 9.5
 const EDGE_PUSH_GAIN := 0.55
 const EDGE_PUSH_MAX := 0.85
-const DRIFT_MIN_CURV := 0.0072
-const DRIFT_EXIT_CURV := 0.0048
+const DRIFT_MIN_CURV := 0.0072 / F1.TRACK_SCALE
+const DRIFT_EXIT_CURV := 0.0048 / F1.TRACK_SCALE
 const DRIFT_EDGE_KEEP := 1.0
 const DRIFT_INSIDE_FRAC := 0.34
 const DRIFT_INSIDE_MIN := 1.7
@@ -22,6 +22,7 @@ const DRIFT_MAX_HOLD := 4.5
 const DRIFT_SPEED_FACTOR := 0.88
 const DRIFT_FLICK := 0.45
 const DRIFT_FLICK_ROOM := 6.0
+const DRIFT_MAX_SPEED := 35.0  # m/s (~125 km/h)
 
 var skill := 0.75
 var aggression := 0.5
@@ -96,7 +97,7 @@ func update(k: Kart, dt: float) -> void:
 	var d := k.t * L
 	var spd := k.speed
 	_update_lane(k, race, line, d, dt)
-	var look := clampf(5.5 + absf(spd) * (0.42 + skill * 0.18), 6.0, 30.0)
+	var look := clampf(5.5 + absf(spd) * (0.42 + skill * 0.18), 6.0, 60.0)
 	var tgt := line.point(d + look)
 	var li := line.index(d + look)
 	var limit := maxf(0.6, line.half[li] - 1.4)
@@ -112,7 +113,20 @@ func update(k: Kart, dt: float) -> void:
 	var d_err := clampf((err - _prev_err) / maxf(dt, 1e-3), -8.0, 8.0)
 	_prev_err = err
 	_i_err = clampf(_i_err + err * dt, -0.4, 0.4)
-	var s := err * 2.35 + d_err * 0.10 + _i_err * 0.30 + cross * 0.045
+	# Pure pursuit: the curvature that reaches the target point, turned into a
+	# steering input through the kart's own steering geometry. Unlike a fixed
+	# gain it stays stable at any speed (kart-royale's PID was tuned for 30 m/s).
+	var to_tgt := Vector2(tgt.x - pos.x, tgt.z - pos.z)
+	var dist := maxf(4.0, to_tgt.length())
+	var kappa := 2.0 * sin(err) / dist
+	var falloff := 0.32 + 0.68 / (1.0 + absf(spd) * 0.075)
+	var pp := atan(kappa * Kart.WHEELBASE) / (Kart.MAX_STEER * falloff)
+	var slow := clampf(30.0 / maxf(absf(spd), 1.0), 0.2, 1.0)
+	var s := pp * 1.15 + d_err * 0.06 * slow + _i_err * 0.15 * slow + cross * 0.03 * slow
+	# Target behind (spun round / facing the wrong way): sin(err) ~ 0 would barely
+	# steer, so turn at full lock towards it.
+	if absf(err) > PI * 0.5:
+		s = signf(err)
 	var half_now := line.half[line.index(d)]
 	var out_sign := 1.0 if lat >= 0.0 else -1.0
 	var excess := absf(lat) - (half_now - EDGE_PUSH_KEEP)
@@ -133,12 +147,12 @@ func update(k: Kart, dt: float) -> void:
 		var inside_sign := -_drift_side
 		var room := half_now - inside_sign * lat
 		cmd_steer = clampf(cmd_steer + _drift_side * DRIFT_FLICK * clampf(room / DRIFT_FLICK_ROOM, 0.3, 1.0), -1.0, 1.0)
-	var react_span := clampf(absf(spd) * 0.35, 4.0, 22.0)
+	var react_span := clampf(absf(spd) * 0.35, 4.0, 45.0)
 	var target := minf(line.speed_at(d), line.min_speed(d, react_span))
 	target *= band
 	target *= 0.90 + skill * 0.11
 	var committed := _drift_hold or k.drift_dir != 0.0
-	var approaching := not committed and absf(line.peak_curv(d, clampf(absf(spd) * 0.95, 16.0, 40.0))) > DRIFT_MIN_CURV
+	var approaching := not committed and absf(line.peak_curv(d, clampf(absf(spd) * 0.95, 16.0, 110.0))) > DRIFT_MIN_CURV
 	if committed or approaching:
 		target *= DRIFT_SPEED_FACTOR
 	if _mistake == Mistake.LATE_BRAKE:
@@ -180,7 +194,7 @@ func update(k: Kart, dt: float) -> void:
 	# kart-royale feeds -cmd.steer to the kart.
 	steer = -cmd_steer
 	_decide_item(k, race, line, d, dt)
-	if k.energy >= 33.0 and absf(line.peak_curv(d, 40.0)) < 0.004 and k.boost_time <= 0.0 and randf() < dt * 0.5:
+	if k.energy >= 33.0 and absf(line.peak_curv(d, 100.0)) < 0.004 / F1.TRACK_SCALE and k.boost_time <= 0.0 and randf() < dt * 0.5:
 		burst = true
 
 
@@ -253,10 +267,13 @@ func _update_lane(k: Kart, race, line: RacingLine, d: float, dt: float) -> void:
 
 
 func _update_drift(k: Kart, line: RacingLine, d: float, spd: float, lat: float, half: float, dt: float) -> bool:
-	if _mistake == Mistake.NO_DRIFT or k.spin_time > 0.0 or spd < 9.0:
+	# Drifting is a slow-corner technique: at F1 speeds it spins the car, so bots
+	# only drift into corners whose racing-line speed is below DRIFT_MAX_SPEED.
+	var corner_speed := line.min_speed(d, clampf(absf(spd) * 0.9, 10.0, 110.0))
+	if _mistake == Mistake.NO_DRIFT or k.spin_time > 0.0 or spd < 9.0 or (not _drift_hold and corner_speed > DRIFT_MAX_SPEED):
 		_end_drift(0.25)
 		return false
-	var span := clampf(absf(spd) * 0.45, 10.0, 24.0)
+	var span := clampf(absf(spd) * 0.45, 10.0, 60.0)
 	if _drift_hold:
 		_drift_t += dt
 		var engaged := k.drift_dir != 0.0
@@ -330,7 +347,7 @@ func _decide_item(k: Kart, race, line: RacingLine, d: float, dt: float) -> void:
 			ahead_kart = o
 		elif along < -0.2 and dist < behind_dist:
 			behind_dist = dist
-	var straight := absf(line.peak_curv(d, 40.0)) < 0.011
+	var straight := absf(line.peak_curv(d, 100.0)) < 0.011 / F1.TRACK_SCALE
 	var leading := k.place == 1
 	var fire := false
 	var back := false
@@ -349,7 +366,7 @@ func _decide_item(k: Kart, race, line: RacingLine, d: float, dt: float) -> void:
 				fire = true
 				back = true
 		"rocket":
-			if ahead_kart and ahead_dist < 85.0:
+			if ahead_kart and ahead_dist < 85.0 * F1.TRACK_SCALE:
 				fire = true
 			elif leading and behind_dist < 22.0:
 				fire = true

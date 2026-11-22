@@ -26,8 +26,8 @@ const RAMPAGE_TIME := 7.4
 const ZAP_TIME := 6.5
 const ZAP_STUN := 0.65
 const SHELL_R := 0.42
-const BOUNCER_SPEED := 33.0
-const ROCKET_SPEED := 37.0
+const BOUNCER_SPEED := 33.0 * F1.PROJECTILE_SCALE
+const ROCKET_SPEED := 37.0 * F1.PROJECTILE_SCALE
 const BOMB_GRAVITY := 21.0
 const MAX_BOUNCES := 4
 const BLAST_RADIUS := 8.2
@@ -87,10 +87,10 @@ class Projectile:
 				if backwards:
 					vel += from.velocity * 0.15
 				else:
-					vel += flat_vel + dir * 12.0
+					vel += flat_vel + dir * 12.0 * 2.0
 			"kaboom":
 				life = 2.7
-				vel = dir * (sign * 19.0) + Vector3.UP * 9.5 + from.velocity * 0.55
+				vel = dir * (sign * 19.0 * 2.0) + Vector3.UP * 9.5 + from.velocity * 0.9
 			"rocket":
 				life = 12.0
 				vel = dir * (sign * ROCKET_SPEED)
@@ -114,8 +114,16 @@ class Projectile:
 	func ground_gap() -> float:
 		return 0.14 if kind == "mine" else SHELL_R * 0.75
 
-	## kart-royale stepLive. Returns false when the projectile is used up.
+	## Sub-steps fast projectiles so they can't tunnel through a kart in one frame.
 	func tick(dt: float, race) -> bool:
+		var n := clampi(ceili(vel.length() * dt / 0.6), 1, 8)
+		for i in n:
+			if not _tick(dt / n, race):
+				return false
+		return true
+
+	## kart-royale stepLive. Returns false when the projectile is used up.
+	func _tick(dt: float, race) -> bool:
 		var track: SunsetTrack = race.track
 		var line: RacingLine = race.racing_line
 		if owner_lock > 0.0:

@@ -27,6 +27,7 @@ var _worst_overlap := 0.0
 var _overlap_ticks := 0
 var _ticks := 0
 var _item_stats := {}  # test log: uses / hits per item
+var _prog_prev := {}
 
 
 func _ready() -> void:
@@ -304,9 +305,10 @@ func _rubber_band(delta: float) -> void:
 		var ai := k.controller as AIController
 		var gap_to_lead := lead - k.total_progress
 		var gap_to_player := k.total_progress - player.total_progress if player else 0.0
-		var want := 1.0 + clampf((gap_to_lead - 30.0) / 80.0, 0.0, 1.0) * 0.05
+		var sc := F1.TRACK_SCALE
+		var want := 1.0 + clampf((gap_to_lead - 30.0 * sc) / (80.0 * sc), 0.0, 1.0) * 0.05
 		if gap_to_lead < 1.0:
-			want -= clampf((gap_to_player - 40.0) / 110.0, 0.0, 1.0) * 0.04
+			want -= clampf((gap_to_player - 40.0 * sc) / (110.0 * sc), 0.0, 1.0) * 0.04
 		ai.band += clampf(want - ai.band, -delta * 0.3, delta * 0.3)
 
 
@@ -521,6 +523,12 @@ func _measure_overlap() -> void:
 			line += "%s:L%d/%.0f%%%s " % [k.display_name.substr(0, 4), k.lap, 100.0 * k.track_offset / track.length, "(F)" if k.finished else ""]
 		print(line)
 		print("  items: ", _item_stats)
+		for k in karts:
+			var prev: float = _prog_prev.get(k, -1.0)
+			if prev >= 0.0 and k.total_progress - prev < 150.0 and not k.finished:
+				var c := k.controller
+				print("  STUCK %s t=%.3f v=%.1f lat=%.1f half=%.1f surf=%d gear=%d thr=%.1f brk=%.1f steer=%.2f spin=%.1f y=%.1f gy=%.1f" % [k.display_name, k.t, k.speed, track.lateral(k.position_k, track.closest_offset(k.position_k)), track.half_width_at(k.track_offset), k.surface, k.gearbox.gear, c.throttle, c.brake, c.steer, k.spin_time, k.position_k.y, k._ground_y])
+			_prog_prev[k] = k.total_progress
 
 
 func popup(text: String, pos: Vector3, color: Color) -> void:

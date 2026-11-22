@@ -13,7 +13,7 @@ const LATE_APEX_SHIFT := 13.0
 const GRAVITY := 20.0
 const A_LAT := 12.6
 const A_BRAKE := 11.5
-const BASE_TOP_SPEED := 30.0
+const BASE_TOP_SPEED := F1.TOP_SPEED
 
 var count := 0
 var ds := 0.0
@@ -72,7 +72,7 @@ func build(track: SunsetTrack) -> void:
 			var want := mx * bx[i] + my * by[i] + mz * bz[i]
 			off[i] = clampf(off[i] + (want - off[i]) * RELAX_RATE, -lim[i], lim[i])
 	for i in n:
-		var inside := signf(ck[i]) * minf(1.0, absf(ck[i]) * 150.0) * half[i] * 0.5
+		var inside := signf(ck[i]) * minf(1.0, absf(ck[i]) * 150.0 * F1.TRACK_SCALE) * half[i] * 0.5
 		off[i] = clampf(off[i] + (inside - off[i]) * 0.24, -lim[i], lim[i])
 	var shift := maxi(1, roundi(LATE_APEX_SHIFT / ds))
 	var src := off.duplicate()
@@ -103,11 +103,17 @@ func build(track: SunsetTrack) -> void:
 		var k := absf(curv[i])
 		var help := -signf(curv[i]) * bank[i]
 		var a_lat := maxf(4.0, A_LAT + GRAVITY * sin(clampf(help, -0.45, 0.45)) * 0.85)
-		speed[i] = minf(v_cap, sqrt(a_lat / k)) if k > 1e-5 else v_cap
+		# Downforce: grip grows with speed, so iterate v = sqrt(a_lat * df(v) / k).
+		var v := v_cap
+		if k > 1e-5:
+			v = sqrt(a_lat / k)
+			for _it in 8:
+				v = minf(v_cap, sqrt(a_lat * F1.downforce(v) / k))
+		speed[i] = v
 	for _pass in 2:
 		for i in range(n - 1, -1, -1):
 			var j := (i + 1) % n
-			speed[i] = minf(speed[i], sqrt(speed[j] * speed[j] + 2.0 * A_BRAKE * ds))
+			speed[i] = minf(speed[i], sqrt(speed[j] * speed[j] + 2.0 * A_BRAKE * F1.downforce(speed[j]) * ds))
 
 
 ## Signed turn per metre at node i (kart-royale's discrete curvature).

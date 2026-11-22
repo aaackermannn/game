@@ -8,9 +8,14 @@ extends Node
 ## drift_start, drift_spark_level, boost, item_pickup, item_roulette,
 ## item_use, rocket_fire, mine_drop, explosion, shield_up, shield_block,
 ## energy_pickup, energy_burst, wall_hit, kart_bump, lap, final_lap, finish,
+## gear_up, gear_down, rev_limiter, backfire, perfect_shift (player kart; engine revs come
+## continuously through the `engine_update` signal),
 ## ui_move, ui_accept, ui_back.
 
 signal sound_event(name: String, position: Vector3)
+## Player engine state every physics frame, for an engine sound: rpm 4000-15000,
+## throttle 0-1, gear (0 = reverse, 1-8), and whether the rev limiter is cutting.
+signal engine_update(rpm: float, throttle: float, gear: int, on_limiter: bool)
 
 const FONT_TITLE := preload("res://fonts/Bangers-Regular.ttf")
 const FONT_BODY := preload("res://fonts/BarlowCondensed-Bold.ttf")
@@ -45,6 +50,7 @@ var laps := 3
 var bot_count := 7
 var difficulty := Difficulty.NORMAL
 var player_racer := 0
+var manual_gearbox := false  # false = automatic gearbox
 
 ## Last race results: Array of {name, time, is_player, finished}.
 var last_results: Array = []
@@ -89,9 +95,11 @@ func _setup_input() -> void:
 	_action("steer_left", [KEY_A, KEY_LEFT], [JOY_BUTTON_DPAD_LEFT], [[JOY_AXIS_LEFT_X, -1.0]])
 	_action("steer_right", [KEY_D, KEY_RIGHT], [JOY_BUTTON_DPAD_RIGHT], [[JOY_AXIS_LEFT_X, 1.0]])
 	_action("drift", [KEY_SPACE, KEY_SHIFT], [JOY_BUTTON_RIGHT_SHOULDER], [])
-	_action("use_item", [KEY_E, KEY_J], [JOY_BUTTON_X], [])
+	_action("use_item", [KEY_F, KEY_J], [JOY_BUTTON_X], [])
 	_action("energy_burst", [KEY_R, KEY_K], [JOY_BUTTON_Y], [])
 	_action("look_back", [KEY_C], [JOY_BUTTON_LEFT_SHOULDER], [])
+	_action("gear_up", [KEY_E], [JOY_BUTTON_DPAD_UP], [])
+	_action("gear_down", [KEY_Q], [JOY_BUTTON_DPAD_DOWN], [])
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START], [])
 	_action("restart_race", [KEY_F5], [], [])
 

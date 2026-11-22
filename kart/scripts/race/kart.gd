@@ -22,7 +22,7 @@ const DRIFT_COLORS := [Color.WHITE, Color("3fb8ff"), Color("ff8a1f"), Color("c04
 # --- kart-royale constants -----------------------------------------------------------
 const GRAVITY := 20.0
 const BASE_MASS := 200.0
-const BASE_TOP_SPEED := 30.0
+const BASE_TOP_SPEED := F1.TOP_SPEED
 const SUBSTEP := 1.0 / 120.0
 const MAX_SUBSTEPS := 6
 const KART_RADIUS := 0.86
@@ -36,7 +36,7 @@ const BRAKE_FORCE := 4200.0
 const REVERSE_FORCE := 1500.0
 const MAX_REVERSE := 8.0
 const ROLL_DRAG := 0.95
-const AERO_DRAG := 0.46
+const AERO_DRAG := F1.AERO_DRAG
 const HOP_SPEED := 3.05
 const DRIFT_REAR_GRIP_IN := 0.98
 const DRIFT_REAR_GRIP_OUT := 0.6
@@ -102,6 +102,13 @@ var drift_dir := 0.0
 var drift_charge := 0.0
 var drift_level := 0             # = kart-royale driftTier
 var suspension := KRSuspension.new()
+var gearbox := Gearbox.new()       # 8-speed sequential, F1-style
+var _engine_mult := 1.0            # drive multiplier from the engine this step
+var _df := 1.0                     # downforce grip multiplier this substep
+var _accel_marks := {}
+var _gear_test := "--gear-test" in OS.get_cmdline_user_args()
+var _pop_test := "--pop-test" in OS.get_cmdline_user_args()
+var _qa_mode := "skip" if "--skip-test" in OS.get_cmdline_user_args() else ("shift" if "--shift-test" in OS.get_cmdline_user_args() else "")  # QA: fire backfires constantly
 var _mass := BASE_MASS
 var _yaw_inertia := BASE_MASS * 0.42
 var _want_drift_prev := false
@@ -159,6 +166,8 @@ var _sparks: Array[CPUParticles3D] = []
 var _flame: CPUParticles3D
 var _dust: CPUParticles3D
 var _shield_mesh: MeshInstance3D
+var _pop: CPUParticles3D
+var _pop_smoke: CPUParticles3D
 
 
 func setup(index: int, racer_data: Dictionary, ctrl: KartController, player: bool) -> void:
@@ -185,6 +194,9 @@ func setup(index: int, racer_data: Dictionary, ctrl: KartController, player: boo
 	_yaw_inertia = _mass * 0.42
 	suspension.set_mass(_mass, GRAVITY)
 	suspension.reset()
+	gearbox.manual = is_player and Game.manual_gearbox
+	if not is_player:
+		gearbox.shift_point = Gearbox.AUTO_UP_RPM + randf_range(-500.0, 300.0)
 	_build_effects()
 
 
@@ -231,6 +243,7 @@ func _set_pose(pos: Vector3, new_yaw: float) -> void:
 	airborne = false
 	_air_time = 0.0
 	suspension.reset()
+	gearbox.reset()
 	_update_basis(1.0)
 	_sync_node()
 	if is_inside_tree():
@@ -351,6 +364,7 @@ func step(track: SunsetTrack, dt: float, steer: float, throttle: float, brake: f
 		throttle = 0.0
 		brake = 0.0
 		want_drift = false
+	_update_engine(dt, throttle, brake)
 	var pr := track.probe(position_k, t)
 	t = pr["t"]
 	_ground_y = pr["y"]
@@ -415,6 +429,80 @@ func _update_airborne(h: float) -> void:
 			airborne = true
 
 
+## Engine + gearbox: shifting (manual keys or automatic), revs, limiter, events.
+func _update_engine(dt: float, throttle: float, brake: float) -> void:
+	# QA scripts (manual gearbox): --skip-test spams upshifts from the start;
+	# --shift-test shifts at the right rpm and asks for downshifts at 8.0/8.3/8.6 s.
+	if _qa_mode != "" and is_player and input_enabled and race:
+		if _qa_mode == "skip":
+			gearbox.shift_up()
+		elif _qa_mode == "shift":
+			if gearbox.rpm > 13500.0:
+				gearbox.shift_up()
+			var rt: float = race.race_time
+			for at in [8.0, 8.3, 8.6]:
+				if rt >= at and rt - dt < at:
+					print("GEAR request down at %.1f s (gear %d, %.0f rpm)" % [rt, gearbox.gear, gearbox.rpm])
+					gearbox.shift_down(speed)
+	if gearbox.manual and input_enabled and not finished and controller:
+		if controller.shift_up:
+			gearbox.shift_up()
+		if controller.shift_down:
+			gearbox.shift_down(speed)
+	var reversing := speed < -0.3 and throttle <= 0.0
+	_engine_mult = gearbox.update(dt, speed, throttle, brake, reversing)
+	for e in gearbox.take_events():
+		match e:
+			"up":
+				# Torque dips for a moment: the nose dips slightly.
+				suspension.pitch_vel += 0.35
+				fx.emit("shift", gearbox.gear)
+				if is_player:
+					Game.sfx("gear_up", global_position)
+			"blip":
+				pass
+			"perfect":
+				# Shift timed with full shift lights: a small surge and some energy.
+				start_boost(0.25, 1.05)
+				add_energy(4.0)
+				if is_player and race:
+					race.popup("PERFECT!", global_position + Vector3.UP * 2.0, Game.GREEN)
+					Game.sfx("perfect_shift", global_position)
+			"down":
+				suspension.pitch_vel += 0.2
+				fx.emit("shift", gearbox.gear)
+				if is_player:
+					Game.sfx("gear_down", global_position)
+			"limiter":
+				if is_player:
+					Game.sfx("rev_limiter", global_position)
+			"backfire":
+				_backfire()
+				if is_player:
+					Game.sfx("backfire", global_position)
+	if _pop_test and is_player and Engine.get_physics_frames() % 8 == 0:
+		_backfire()
+	if is_player:
+		Game.engine_update.emit(gearbox.rpm, throttle, gearbox.gear, gearbox.on_limiter)
+		if _gear_test and input_enabled:
+			for mark in [100.0, 200.0, 300.0]:
+				if speed * 3.6 >= mark and not _accel_marks.has(mark):
+					_accel_marks[mark] = race.race_time
+					print("ACCEL 0-%d km/h: %.2f s (gear %d)" % [mark, race.race_time, gearbox.gear])
+		if _gear_test and Engine.get_physics_frames() % 30 == 0 and input_enabled:
+			print("GEAR t=%4.1f v=%5.1f km/h gear=%d rpm=%5.0f lim=%s thr=%.2f boost=%s" % [race.race_time, speed * 3.6, gearbox.gear, gearbox.rpm, gearbox.on_limiter, throttle, boost_time > 0.0])
+
+
+## Comic flame pop and puff from the exhaust.
+func _backfire() -> void:
+	if _pop == null:
+		return
+	_pop.restart()
+	_pop.emitting = true
+	_pop_smoke.restart()
+	_pop_smoke.emitting = true
+
+
 static func _smooth(rate: float, dt: float) -> float:
 	return 1.0 - exp(-rate * dt)
 
@@ -439,19 +527,21 @@ func _substep(h: float, throttle: float, brake: float, stunned: bool) -> void:
 	top_speed = BASE_TOP_SPEED * speed_mult * surf_max * (boost_strength if boosting else 1.0) * (1.06 if star_time > 0.0 else 1.0)
 	var vf := fwd_before
 	speed = vf
+	_df = F1.downforce(vf) if grounded else 1.0
 	var drive := 0.0
 	if not stunned:
 		if throttle > 0.0:
-			var r := clampf(vf / maxf(4.0, top_speed), 0.0, 1.0)
-			drive += MAX_DRIVE * throttle * (1.0 - 0.8 * r * r * r) * (1.7 if boosting else 1.0)
+			# Engine torque through the gearbox (see Gearbox); boosts add thrust on top.
+			drive += MAX_DRIVE * throttle * _engine_mult * (1.7 if boosting else 1.0)
 		var stop_cap := (_mass * maxf(0.0, vf)) / h
 		if brake > 0.0:
 			if vf > 0.4:
-				drive -= minf(BRAKE_FORCE * brake, stop_cap)
+				drive -= minf(BRAKE_FORCE * brake * _df, stop_cap)
 			elif throttle <= 0.0 and vf > -MAX_REVERSE and input_enabled:
 				drive -= REVERSE_FORCE * brake
 		elif throttle <= 0.0 and not boosting and vf > 0.5:
-			drive -= minf(400.0, stop_cap)
+			# Engine braking: stronger at high revs and in low gears.
+			drive -= minf(MAX_DRIVE * gearbox.engine_brake, stop_cap)
 	drive = clampf(drive, -MAX_DRIVE * 3.0, MAX_DRIVE * 3.0)
 	var drifting := drift_dir != 0.0 and grounded
 	var inward := clampf(steer_input * drift_dir, -1.0, 1.0) if drifting else 0.0
@@ -480,7 +570,7 @@ func _substep(h: float, throttle: float, brake: float, stunned: bool) -> void:
 		var contact_vel := (up_k * yaw_rate).cross(arm) + velocity
 		var v_long := contact_vel.dot(wheel_f)
 		var v_lat := contact_vel.dot(wheel_r)
-		var grip: float = KRSuspension._props(w.surface)[0]
+		var grip: float = KRSuspension._props(w.surface)[0] * _df
 		if not w.front:
 			grip *= rear_grip_mul
 		if stunned:
@@ -511,10 +601,10 @@ func _substep(h: float, throttle: float, brake: float, stunned: bool) -> void:
 			var v := maxf(6.0, Vector2(lat_before, fwd_before).length())
 			var beta := atan2(lat_before, maxf(2.0, absf(fwd_before)))
 			var target := -drift_dir * lerpf(DRIFT_SLIP_OUT, DRIFT_SLIP_IN, (inward + 1.0) * 0.5)
-			var yaw_cap := (DRIFT_MAX_YAW * grip_blend) / v
+			var yaw_cap := (DRIFT_MAX_YAW * grip_blend * _df) / v
 			var slip_yaw := clampf(_a_lat_pure / v - clampf(target - beta, -0.45, 0.45) * DRIFT_SLIP_GAIN, -yaw_cap, yaw_cap)
 			var escape := clampf(-inward, 0.0, 1.0)
-			var max_yaw := (24.0 * grip_blend) / maxf(5.0, absf(fwd_before))
+			var max_yaw := (24.0 * grip_blend * _df) / maxf(5.0, absf(fwd_before))
 			var rack_yaw := clampf((fwd_before / WHEELBASE) * tan(steer_angle), -max_yaw, max_yaw)
 			var desired := lerpf(slip_yaw, rack_yaw, escape * escape)
 			yaw_rate += clampf(desired - yaw_rate, -2.5, 2.5) * 6.0 * h
@@ -523,7 +613,7 @@ func _substep(h: float, throttle: float, brake: float, stunned: bool) -> void:
 			_drift_beta = beta
 		else:
 			velocity += right_k * (-lat_before * clampf(2.4 * grip_blend * h, 0.0, 0.4))
-			var max_yaw := (24.0 * grip_blend) / maxf(5.0, absf(fwd_before))
+			var max_yaw := (24.0 * grip_blend * _df) / maxf(5.0, absf(fwd_before))
 			var target := clampf((fwd_before / WHEELBASE) * tan(steer_angle), -max_yaw, max_yaw)
 			yaw_rate += clampf(target - yaw_rate, -3.0, 3.0) * 3.4 * grip_blend * h
 	elif not grounded and not stunned:
@@ -733,6 +823,8 @@ func _collide_walls(track: SunsetTrack) -> void:
 	if drift_dir != 0.0 and squareness > 0.35:
 		_release_drift()
 	var impulse := -vn * (1.0 + WALL_RESTITUTION)
+	if _gear_test and is_player:
+		print("WALLHIT t=%.2f v=%.0f km/h impulse=%.1f t_lap=%.3f lat=%.1f" % [race.race_time, velocity.length() * 3.6, impulse, t, race.track.lateral(position_k, race.track.closest_offset(position_k))])
 	if _collide_cooldown <= 0.0 and impulse > 1.5:
 		_collide_cooldown = 0.12
 		fx.emit("collide", impulse)
@@ -765,6 +857,8 @@ func _collide_karts(h: float) -> void:
 			var j := -(1.0 + KART_RESTITUTION) * rel * share
 			velocity += sep * j
 			yaw_rate += clampf(sep.dot(right_k) * rel * 0.06, -1.6, 1.6)
+			if _gear_test and is_player and -rel > 5.0:
+				print("KARTHIT t=%.2f rel=%.1f with %s" % [race.race_time, -rel, other.display_name])
 			if _collide_cooldown <= 0.0 and -rel > 2.0:
 				_collide_cooldown = 0.14
 				bumped.emit(self, other, -rel)
@@ -789,7 +883,7 @@ func _autopilot_steer() -> float:
 	if race == null:
 		return 0.0
 	var track: Track = race.track
-	var target := track.point_at(track_offset + 14.0)
+	var target := track.point_at(track_offset + 14.0 + absf(speed) * 0.4)
 	var to := target - position_k
 	to.y = 0.0
 	# +1 = right; signed_angle_to is counter-clockwise positive around UP.
@@ -931,6 +1025,31 @@ func _build_effects() -> void:
 	_dust.gravity = Vector3(0, 1, 0)
 	_dust.scale_amount_curve = _shrink_curve()
 	_visual.add_child(_dust)
+	# Backfire: a comic flame puff and a few small dark smoke balls from the exhaust.
+	_pop = _ball_particles(Color("ffd23f"), 0.11, 12, 0.16, true)
+	_pop.one_shot = true
+	_pop.explosiveness = 1.0
+	_pop.local_coords = true
+	_pop.position = Vector3(0, 0.40, 1.12)
+	_pop.direction = Vector3(0, 0.2, 1)
+	_pop.spread = 32.0
+	_pop.initial_velocity_min = 3.0
+	_pop.initial_velocity_max = 6.5
+	_pop.gravity = Vector3.ZERO
+	_pop.color_ramp = _flame_ramp()
+	_pop.scale_amount_curve = _shrink_curve()
+	_visual.add_child(_pop)
+	_pop_smoke = _ball_particles(Color(0.22, 0.2, 0.25), 0.09, 5, 0.45, false)
+	_pop_smoke.one_shot = true
+	_pop_smoke.explosiveness = 0.9
+	_pop_smoke.position = Vector3(0, 0.44, 1.2)
+	_pop_smoke.direction = Vector3(0, 0.7, 1)
+	_pop_smoke.spread = 25.0
+	_pop_smoke.initial_velocity_min = 1.0
+	_pop_smoke.initial_velocity_max = 2.0
+	_pop_smoke.gravity = Vector3(0, 1.5, 0)
+	_pop_smoke.scale_amount_curve = _shrink_curve()
+	_visual.add_child(_pop_smoke)
 	var sm := SphereMesh.new()
 	sm.radius = 1.4
 	sm.height = 2.4
@@ -959,6 +1078,26 @@ static func _shrink_curve() -> Curve:
 	c.add_point(Vector2(0, 1))
 	c.add_point(Vector2(1, 0))
 	return c
+
+
+## Round particles (flame and smoke puffs read better as balls than as cubes).
+func _ball_particles(color: Color, radius: float, amount: int, life: float, glow: bool) -> CPUParticles3D:
+	var p := _particles(color, radius, amount, life)
+	var m := SphereMesh.new()
+	m.radius = radius
+	m.height = radius * 2.0
+	m.radial_segments = 8
+	m.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	if glow:
+		mat.emission_enabled = true
+		mat.emission = Color(1.0, 0.6, 0.1)
+		mat.emission_energy_multiplier = 0.6
+	m.material = mat
+	p.mesh = m
+	return p
 
 
 func _particles(color: Color, size: float, amount: int, life: float) -> CPUParticles3D:

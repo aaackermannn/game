@@ -6,12 +6,25 @@ var _current: Node
 
 func _ready() -> void:
 	Game.main = self
+	var args := OS.get_cmdline_user_args()
+	for a in args:
+		if a == "--manual":
+			Game.manual_gearbox = true
+		if a.begins_with("--laps="):
+			Game.laps = clampi(int(a.substr(7)), 1, 9)
+	# `-- --qa` runs the automated QA walk-through (see qa_runner.gd).
+	if "--qa" in args:
+		var qa: Node = load("res://scripts/qa_runner.gd").new()
+		qa.name = "QA"
+		add_child(qa)
+		start_race()
+		return
 	# `-- --netlab --host|--client ...` opens the multiplayer lab (practical #4).
-	if "--netlab" in OS.get_cmdline_user_args():
+	if "--netlab" in args:
 		start_netlab()
 		return
 	# `-- --race` on the command line jumps straight into a race (testing).
-	if "--race" in OS.get_cmdline_user_args():
+	if "--race" in args:
 		start_race()
 	else:
 		show_menu()

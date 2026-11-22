@@ -74,7 +74,7 @@ const GROUND_CLEAR := 0.68
 const SWEEP_STATIONS := 5
 const ARM_FRAC_IN := 0.06
 const ARM_FRAC_OUT := 0.22
-const BASE_TOP_SPEED := 30.0
+const BASE_TOP_SPEED := F1.TOP_SPEED
 
 ## Critically damped spring (Unity-style SmoothDamp), as in kart-royale's damp1.
 class Damp:

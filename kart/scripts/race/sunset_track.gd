@@ -229,7 +229,9 @@ func corner_factor(t: float) -> float:
 	if n == 0:
 		return 1.0
 	var i := clampi(int(fposmod(t, 1.0) * n), 0, n - 1)
-	return clampf((_corner_table[i] - 0.0045) / (0.007 - 0.0045), 0.0, 1.0)
+	var lo := 0.0045 / F1.TRACK_SCALE
+	var hi := 0.007 / F1.TRACK_SCALE
+	return clampf((_corner_table[i] - lo) / (hi - lo), 0.0, 1.0)
 
 
 func _build_corner_table() -> void:

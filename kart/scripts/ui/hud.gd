@@ -108,10 +108,10 @@ func _ready() -> void:
 	# Speedometer (bottom-right).
 	var sp_panel := Ui.panel(Game.YELLOW, -16.0, 10.0, true)
 	sp_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	sp_panel.position = Vector2(-300, -230)
+	sp_panel.position = Vector2(-310, -250)
 	sp_panel.rotation = deg_to_rad(2)
 	_speedo = Speedometer.new()
-	_speedo.custom_minimum_size = Vector2(250, 180)
+	_speedo.custom_minimum_size = Vector2(260, 190)
 	sp_panel.add_child(_speedo)
 	root.add_child(sp_panel)
 
@@ -124,7 +124,10 @@ func _ready() -> void:
 	root.add_child(_wrong)
 
 	# Controls hint (fades after start).
-	_hint = Ui.label("W/S drive   A/D steer   SPACE drift   E item   R energy burst   C look back   ESC pause", 24, Game.PAPER, Game.FONT_BODY, 6)
+	var hint := "W/S drive   A/D steer   SPACE drift   F item   R energy burst   C look back   ESC pause"
+	if Game.manual_gearbox:
+		hint = "W/S drive   A/D steer   SPACE drift   Q/E gear down/up   F item   R burst   ESC pause"
+	_hint = Ui.label(hint, 24, Game.PAPER, Game.FONT_BODY, 6)
 	_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_hint.position = Vector2(-430, -50)
 	root.add_child(_hint)
@@ -167,6 +170,9 @@ func _process(_delta: float) -> void:
 	_speedo.speed = absf(p.speed)
 	_speedo.max_speed = p.max_speed
 	_speedo.drift_level = p.drift_level
+	_speedo.rpm = p.gearbox.rpm
+	_speedo.gear = p.gearbox.gear
+	_speedo.on_limiter = p.gearbox.on_limiter
 	_wrong.visible = p.wrong_way_time > 0.8 and int(Time.get_ticks_msec() / 300) % 2 == 0
 	var boost := 1.0 if p.is_boosting() else clampf((p.speed / p.max_speed - 0.85) * 2.0, 0.0, 0.4)
 	_line_amt = lerpf(_line_amt, boost, 0.15)
@@ -449,40 +455,82 @@ class Minimap:
 
 
 class Speedometer:
+	## F1-style tachometer: rpm needle with red zone, shift lights, gear, speed.
 	extends Control
 	var speed := 0.0
 	var max_speed := 30.0
 	var drift_level := 0
+	var rpm := 4000.0
+	var gear := 1
+	var on_limiter := false
 	var _shown := 0.0
+	var _rpm_shown := 4000.0
+	var _t := 0.0
 
 	func _process(delta: float) -> void:
+		_t += delta
 		_shown = lerpf(_shown, speed, clampf(delta * 10.0, 0.0, 1.0))
+		# Fast needle: it has to show the limiter bounce.
+		_rpm_shown = lerpf(_rpm_shown, rpm, clampf(delta * 28.0, 0.0, 1.0))
 		queue_redraw()
 
 	func _draw() -> void:
-		var c := Vector2(size.x * 0.5, size.y * 0.86)
-		var r := minf(size.x * 0.46, size.y * 0.8)
-		draw_circle(c, r + 6.0, Game.INK)
-		draw_circle(c, r, Game.PAPER)
-		# Red zone + ticks.
+		# Layout: shift lights on top, a half-dial below with the gear in the
+		# middle and the speed just above the needle pivot.
+		var leds := 9
+		var lw := (size.x - 40.0) / leds
+		for i in leds:
+			var on_at := lerpf(10500.0, Gearbox.AUTO_UP_RPM, float(i) / (leds - 1))
+			var col := Color(Game.INK, 0.25)
+			if on_limiter:
+				col = Game.BLUE if int(_t * 14.0) % 2 == 0 else Color(Game.INK, 0.25)
+			elif _rpm_shown >= on_at:
+				col = Game.GREEN if i < 3 else (Game.RED if i < 6 else Game.PURPLE)
+			var p := Vector2(20.0 + lw * (i + 0.5), 12.0)
+			draw_circle(p, lw * 0.32 + 2.0, Game.INK)
+			draw_circle(p, lw * 0.32, col)
+		var c := Vector2(size.x * 0.5, size.y - 6.0)
+		var r := minf(size.x * 0.47, size.y - 40.0)
+		# Half dial only (the lower half would hang below the panel).
+		var outer := PackedVector2Array()
+		var inner := PackedVector2Array()
+		for i in 33:
+			var a := PI + PI * i / 32.0
+			outer.append(c + Vector2(cos(a), sin(a)) * (r + 6.0))
+			inner.append(c + Vector2(cos(a), sin(a)) * r)
+		draw_colored_polygon(outer, Game.INK)
+		draw_colored_polygon(inner, Game.PAPER)
 		var a0 := PI
 		var a1 := TAU
-		draw_arc(c, r - 10.0, lerpf(a0, a1, 0.78), a1, 16, Game.RED, 14.0)
-		for i in 11:
-			var a := lerpf(a0, a1, i / 10.0)
+		var max_rpm := 16000.0
+		var red := Game.RED if not on_limiter or int(_t * 16.0) % 2 == 0 else Game.YELLOW
+		draw_arc(c, r - 9.0, lerpf(a0, a1, Gearbox.RED_RPM / max_rpm), a1, 16, red, 12.0)
+		for i in 17:
+			var a := lerpf(a0, a1, i / 16.0)
 			var d := Vector2(cos(a), sin(a))
-			draw_line(c + d * (r - 4.0), c + d * (r - (22.0 if i % 2 == 0 else 13.0)), Game.INK, 4.0 if i % 2 == 0 else 2.5)
-		var kmh := _shown * 3.6
-		var t := clampf(_shown / (max_speed * 1.45), 0.0, 1.0)
-		var na := lerpf(a0, a1, t)
+			var major := i % 2 == 0
+			draw_line(c + d * (r - 3.0), c + d * (r - (19.0 if major else 11.0)), Game.INK, 3.5 if major else 2.0)
+			if major and i > 0 and i < 16:
+				draw_string(Game.FONT_TITLE, c + d * (r - 31.0) + Vector2(-12, 6), str(i), HORIZONTAL_ALIGNMENT_CENTER, 24, 16, Game.INK)
+		var na := lerpf(a0, a1, clampf(_rpm_shown / max_rpm, 0.0, 1.0))
 		var nd := Vector2(cos(na), sin(na))
 		var needle_col: Color = Kart.DRIFT_COLORS[drift_level] if drift_level > 0 else Game.RED
-		draw_line(c, c + nd * (r - 18.0), Game.INK, 10.0)
-		draw_line(c, c + nd * (r - 20.0), needle_col, 5.0)
-		draw_circle(c, 12.0, Game.INK)
-		draw_string_outline(Game.FONT_TITLE, Vector2(c.x - 70, c.y - 34), "%d" % kmh, HORIZONTAL_ALIGNMENT_CENTER, 140, 56, 10, Game.INK)
-		draw_string(Game.FONT_TITLE, Vector2(c.x - 70, c.y - 34), "%d" % kmh, HORIZONTAL_ALIGNMENT_CENTER, 140, 56, Game.YELLOW)
-		draw_string(Game.FONT_TITLE, Vector2(c.x - 70, c.y - 8), "KM/H", HORIZONTAL_ALIGNMENT_CENTER, 140, 22, Game.INK)
+		draw_line(c, c + nd * (r - 14.0), Game.INK, 9.0)
+		draw_line(c, c + nd * (r - 16.0), needle_col, 4.5)
+		draw_circle(c, 10.0, Game.INK)
+		# Gear in the middle of the dial.
+		var g := "R" if gear == 0 else str(gear)
+		var gs := Vector2(42, 48)
+		var gb := Rect2(Vector2(c.x - gs.x * 0.5, c.y - r * 0.42 - gs.y * 0.5), gs)
+		draw_rect(Rect2(gb.position + Vector2(3, 3), gb.size), Game.INK)
+		draw_rect(gb, Game.YELLOW)
+		draw_rect(gb, Game.INK, false, 3.5)
+		draw_string(Game.FONT_TITLE, Vector2(gb.position.x, gb.end.y - 7), g, HORIZONTAL_ALIGNMENT_CENTER, gb.size.x, 44, Game.INK)
+		# Speed above the pivot, outlined so the needle never hides it.
+		var kmh := "%d KM/H" % (_shown * 3.6)
+		var sp := Vector2(c.x - 70, c.y - r * 0.08)
+		draw_string_outline(Game.FONT_TITLE, sp, kmh, HORIZONTAL_ALIGNMENT_CENTER, 140, 24, 7, Game.INK)
+		draw_string(Game.FONT_TITLE, sp, kmh, HORIZONTAL_ALIGNMENT_CENTER, 140, 24, Game.YELLOW)
 
 
 class FlashText:

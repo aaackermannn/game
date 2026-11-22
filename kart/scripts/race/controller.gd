@@ -10,6 +10,8 @@ var drift := false    # held
 var use_item := false # pressed this frame
 var burst := false    # pressed this frame
 var use_backwards := false  # throw the item behind instead of ahead
+var shift_up := false       # manual gearbox: pressed this frame
+var shift_down := false
 
 
 func update(_kart: Kart, _delta: float) -> void:
