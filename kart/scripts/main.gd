@@ -6,6 +6,10 @@ var _current: Node
 
 func _ready() -> void:
 	Game.main = self
+	# `-- --netlab --host|--client ...` opens the multiplayer lab (practical #4).
+	if "--netlab" in OS.get_cmdline_user_args():
+		start_netlab()
+		return
 	# `-- --race` on the command line jumps straight into a race (testing).
 	if "--race" in OS.get_cmdline_user_args():
 		start_race()
@@ -27,6 +31,13 @@ func show_menu() -> void:
 
 func start_race() -> void:
 	_swap(Race.new())
+
+
+## Practical work #4: networked prediction / reconciliation lab.
+func start_netlab() -> void:
+	var lab := NetLab.new()
+	lab.name = "NetLab"  # same node path on every peer, required for RPCs
+	_swap(lab)
 
 
 # --- Test helpers: `-- --race --autoplay --shot=C:/path/out.png --shot-time=8` ---
