@@ -70,6 +70,8 @@ Dedicated Server соответствует существующему разд�
 
 ## Практические работы
 
+- **№4 — Client-Side Prediction и Server Reconciliation.** В Godot-клиенте (`kart/`) режим **NET LAB**: listen server + клиенты по ENet, сервер-авторитет, детерминированное движение `NetSim.step()`, сохранённые ходы, коррекция и повторное проигрывание ввода, рывок с серверной проверкой кулдауна, эмулятор `NetEmulation.*`. Без предсказания рывок виден через ~293 мс (100 мс в каждую сторону), с предсказанием — в том же кадре. [Отчёт](docs/Prediction_Implementation.md) · [Матрица тестов](docs/Prediction_Test_Matrix.md) · [Видео и скриншоты](docs/media/) · код [`kart/scripts/net/`](kart/scripts/net/) · [Техническое пояснение (docx)](Защита_ПР4/ПР4_техническое_пояснение.docx).
+
 - **№3 — надёжная доставка критичных команд.** UDP-стенд из ПР №2 подтверждает `SHOOT` и повторяет его при адаптивном тайм-ауте. [Отчёт и эксперимент](pr2-latency-template/docs/Reliability_Protocol.md) · [Материалы для защиты](Защита_ПР3/Защита_практической_работы_3.docx) · [Разбор реализации по ТЗ](Защита_ПР3/Разбор_реализации_ПР3_по_ТЗ.docx).
 
 - **№1 — UDP-протокол и архитектура.** Консольные UDP-сервер и клиент на C++ (Berkeley Sockets/Winsock, адрес резолвится через `getaddrinfo()`), ООП-структура (`UdpSocket`, `GameServer`, `GameClient`), команды `MOVEMENT`/`SHOOT`/`AUTH`, заголовок с sequence-номером и CRC32-checksum, логирование на сервере. Код: [`net/`](net/), [`server/`](server/), [`client/`](client/). Спецификация протокола: [docs/pr1-udp-protocol.md](docs/pr1-udp-protocol.md). Отчёт о выполнении по шагам: [docs/pr1.md](docs/pr1.md).

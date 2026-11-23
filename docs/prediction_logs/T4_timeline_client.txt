@@ -1,0 +1,14 @@
+0.3 autodrive 1
+2.5 dash
+4.5 dash
+6.5 dash
+8.5 dash
+10.5 dash
+12.5 dash
+7.2 dash
+13.5 net.DashPrediction 0
+15.0 dash
+17.0 dash
+19.0 dash
+20.1 stats
+20.5 quit

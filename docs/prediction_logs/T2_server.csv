@@ -1,0 +1,12 @@
+t_ms,wall_ms,role,event,details
+120.5,1795375187749,server,spawn,"peer=1 slot=0"
+120.7,1795375187749,server,listen_server_started,"port=27301"
+208.0,1795375187837,server,console,"cmd=autodrive 1 result=autodrive: true"
+3208.7,1795375190838,server,spawn,"peer=906069527 slot=1"
+6079.6,1795375193708,server,server_dash_accept,"peer=906069527 path=rpc id=1"
+8063.5,1795375195692,server,server_dash_accept,"peer=906069527 path=rpc id=2"
+10101.1,1795375197729,server,server_dash_accept,"peer=906069527 path=rpc id=3"
+12066.0,1795375199694,server,server_dash_accept,"peer=906069527 path=rpc id=4"
+14080.7,1795375201710,server,server_dash_accept,"peer=906069527 path=rpc id=5"
+16099.3,1795375203728,server,server_dash_accept,"peer=906069527 path=rpc id=6"
+17998.6,1795375205627,server,despawn,"peer=906069527"
